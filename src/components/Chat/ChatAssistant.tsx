@@ -22,6 +22,7 @@ export const ChatAssistant: React.FC = () => {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [lastMessageTime, setLastMessageTime] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,10 +31,18 @@ export const ChatAssistant: React.FC = () => {
 
   const handleSend = async (text = input) => {
     if (!text.trim()) return;
+
+    // Security: Basic Rate Limiting (Requirement 4)
+    const now = Date.now();
+    if (now - lastMessageTime < 1000) {
+      console.warn("Rate limit exceeded");
+      return;
+    }
+    setLastMessageTime(now);
     
     const userMsg: Message = { 
       id: Date.now(), 
-      text: text.trim(), 
+      text: text.trim().substring(0, 500), // Security: Input truncation
       sender: 'user',
       timestamp: new Date()
     };
@@ -42,7 +51,6 @@ export const ChatAssistant: React.FC = () => {
     setInput("");
     setIsTyping(true);
     
-    // Log event for analytics (Google Services Integration)
     logEvent('chat_query', { query: text.substring(0, 50) });
 
     try {
@@ -61,6 +69,24 @@ export const ChatAssistant: React.FC = () => {
     }
   };
 
+  // Efficiency: Memoized message bubbles
+  const messageList = React.useMemo(() => (
+    messages.map((msg) => (
+      <div 
+        key={msg.id} 
+        className={`message-wrapper ${msg.sender}`}
+      >
+        <div className="message-bubble">
+          <span className="sr-only">{msg.sender === 'user' ? 'You said:' : 'Assistant said:'}</span>
+          {msg.text}
+        </div>
+        <span className="message-time">
+          {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
+    ))
+  ), [messages]);
+
   return (
     <div className="chat-interface" aria-label="AI Voter Assistant Chat">
       <div className="chat-header">
@@ -74,20 +100,7 @@ export const ChatAssistant: React.FC = () => {
       </div>
 
       <div className="chat-messages" role="log" aria-live="polite">
-        {messages.map((msg) => (
-          <div 
-            key={msg.id} 
-            className={`message-wrapper ${msg.sender}`}
-          >
-            <div className="message-bubble">
-              <span className="sr-only">{msg.sender === 'user' ? 'You said:' : 'Assistant said:'}</span>
-              {msg.text}
-            </div>
-            <span className="message-time">
-              {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        ))}
+        {messageList}
         {isTyping && (
           <div className="message-wrapper bot">
             <div className="message-bubble typing">

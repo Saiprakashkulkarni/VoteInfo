@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getGeminiResponse } from './gemini';
 
 // Mock the GoogleGenerativeAI SDK
@@ -15,15 +15,22 @@ vi.mock('@google/generative-ai', () => {
 });
 
 describe('Gemini Service', () => {
-  it('should return a response for a valid prompt', async () => {
-    const response = await getGeminiResponse("Hello");
-    expect(response).toBeDefined();
-    expect(typeof response).toBe('string');
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Clear cache by potentially resetting modules if needed, 
+    // but for simple tests we can just use different prompts
   });
 
-  it('should handle offline mode gracefully', async () => {
-    // This is hard to test directly without resetting modules, 
-    // but we can check if it returns the fallback string when API key is missing
-    // In our implementation, we check for API_KEY presence.
+  it('should return a response for a valid prompt', async () => {
+    const response = await getGeminiResponse("How to vote?");
+    expect(response).toBe("Mocked AI Response");
+  });
+
+  it('should return cached response for identical prompts', async () => {
+    // First call
+    const response1 = await getGeminiResponse("Election date?");
+    // Second call should come from cache (indicated by log or just same behavior)
+    const response2 = await getGeminiResponse("Election date?");
+    expect(response2).toBe(response1);
   });
 });

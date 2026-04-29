@@ -19,35 +19,51 @@ Your goal is to:
 6. If no API key is provided, explain how to get one or provide a helpful generic response.
 `;
 
-export async function getGeminiResponse(userPrompt: string) {
-  // Basic safety check/sanitization (Requirement 4: Security)
-  const sanitizedPrompt = userPrompt.trim().substring(0, 1000); // Limit length
+// Simple cache for Efficiency (Requirement 3)
+const responseCache = new Map<string, string>();
 
-  if (!genAI) {
-    return "I'm currently in 'Offline Mode' (No API Key). I can still help with general info, but for deep data reasoning, please add a VITE_GEMINI_API_KEY to your environment. \n\nBased on my local data: " + getOfflineResponse(sanitizedPrompt);
+export async function getGeminiResponse(userPrompt: string) {
+  const sanitizedPrompt = userPrompt.trim().substring(0, 1000);
+  
+  // Return cached response if available
+  if (responseCache.has(sanitizedPrompt)) {
+    console.log("Returning cached AI response");
+    return responseCache.get(sanitizedPrompt) || "";
   }
 
-  // Use the models CONFIRMED to be available for this API key
+  if (!genAI) {
+    const offline = getOfflineResponse(sanitizedPrompt);
+    return "I'm currently in 'Offline Mode'. \n\n" + offline;
+  }
+
+  // Model rotation for robustness
   const modelsToTry = [
-    "gemini-2.0-flash",      // High performance
-    "gemini-2.0-flash-lite", // Quota friendly
-    "gemini-2.5-flash"       // Latest generation
+    "gemini-2.0-flash", 
+    "gemini-1.5-flash", 
+    "gemini-1.5-pro"
   ];
 
   for (const modelName of modelsToTry) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent([SYSTEM_INSTRUCTION, sanitizedPrompt]);
+      // Use systemInstruction for better alignment (Google Services feature)
+      const model = genAI.getGenerativeModel({ 
+        model: modelName,
+        systemInstruction: SYSTEM_INSTRUCTION 
+      });
+
+      const result = await model.generateContent(sanitizedPrompt);
       const response = await result.response;
-      return response.text();
+      const text = response.text();
+      
+      // Store in cache
+      responseCache.set(sanitizedPrompt, text);
+      return text;
     } catch (error: any) {
-      console.warn(`Model ${modelName} failed, trying next...`, error);
-      // If it's a quota error (429), we should still try the next model
-      // because different models often have different quota buckets.
+      console.warn(`Model ${modelName} failed: ${error.message}`);
     }
   }
 
-  return `I encountered an error connecting to all available Gemini models. This often happens if the free tier quota is exceeded. \n\nFalling back to local data: ` + getOfflineResponse(sanitizedPrompt);
+  return `I encountered an error connecting to all available Gemini models. \n\nFallback: ` + getOfflineResponse(sanitizedPrompt);
 }
 
 function getOfflineResponse(prompt: string): string {

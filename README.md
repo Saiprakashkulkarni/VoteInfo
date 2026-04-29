@@ -1,8 +1,6 @@
-# 🗳️ VoteInfo AI: Intelligent Election Assistant
+# 🗳️ VoteInfo AI - Election Process Education Assistant
 
-**VoteInfo AI** is a premium, feature-rich web application designed to empower Indian voters with data-driven insights and AI-powered reasoning. Built with **React**, **Vite**, and **Google Gemini API**, it provides an interactive journey through the electoral process.
-
-![VoteInfo AI Banner](https://images.unsplash.com/photo-1540910419892-f0c74b0e53b3?auto=format&fit=crop&q=80&w=1200)
+VoteInfo AI is a premium, AI-powered platform designed to educate Indian voters on the electoral process, from registration to casting the final vote. Built with **Generative AI reasoning** and **Google Cloud services**, it provides an interactive and accessible experience for all citizens.
 
 ## 🚀 Key Features
 
